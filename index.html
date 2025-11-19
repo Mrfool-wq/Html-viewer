@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Viewer & Editor</title>
+    <style>
+        /* ===== CSS VARIABLES FOR THEMING ===== */
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d30;
+            --text-primary: #d4d4d4;
+            --text-secondary: #858585;
+            --accent: #007acc;
+            --accent-hover: #0098ff;
+            --border: #3e3e42;
+            --success: #4ec9b0;
+            --danger: #f48771;
+            --warning: #dcdcaa;
+            --editor-bg: #1e1e1e;
+            --preview-bg: #ffffff;
+            --scrollbar-track: #1e1e1e;
+            --scrollbar-thumb: #424242;
+            --scrollbar-thumb-hover: #4e4e4e;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f3f3f3;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e8e8e8;
+            --text-primary: #1e1e1e;
+            --text-secondary: #6e6e6e;
+            --accent: #0078d4;
+            --accent-hover: #005a9e;
+            --border: #d1d1d1;
+            --success: #16825d;
+            --danger: #d13438;
+            --warning: #ca5010;
+            --editor-bg: #ffffff;
+            --preview-bg: #ffffff;
+            --scrollbar-track: #f0f0f0;
+            --scrollbar-thumb: #c1c1c1;
+            --scrollbar-thumb-hover: #a8a8a8;
+        }
+
+        /* ===== RESET & BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== CUSTOM SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--scrollbar-thumb-hover);
+        }
+
+        /* ===== HEADER / TOOLBAR ===== */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            min-height: 60px;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo::before {
+            content: '</>';
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        select.btn {
+            padding-right: 30px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d4d4d4' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== EDITOR PANEL ===== */
+        .editor-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            position: relative;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: var(--bg-secondary);
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .editor {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        .editor.active {
+            display: block;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 100%;
+            background: var(--editor-bg);
+            color: var(--text-primary);
+            border: none;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            tab-size: 2;
+        }
+
+        .code-editor::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        /* ===== PREVIEW PANEL ===== */
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .preview-header {
+            background: var(--bg-tertiary);
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 45px;
+        }
+
+        .preview-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .preview-container {
+            flex: 1;
+            background: var(--preview-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* ===== RESIZER ===== */
+        .resizer {
+            width: 5px;
+            background: var(--border);
+            cursor: col-resize;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .resizer:hover,
+        .resizer.resizing {
+            background: var(--accent);
+        }
+
+        /* ===== FULLSCREEN MODE ===== */
+        .fullscreen-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 1000;
+            flex-direction: column;
+        }
+
+        .fullscreen-overlay.active {
+            display: flex;
+        }
+
+        .fullscreen-header {
+            background: var(--bg-secondary);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+                gap: 10px;
+            }
+
+            .logo {
+                font-size: 1rem;
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+
+            .container {
+                flex-direction: column;
+            }
+
+            .editor-panel {
+                width: 100%;
+                height: 50%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .resizer {
+                width: 100%;
+                height: 5px;
+                cursor: row-resize;
+            }
+
+            .preview-panel {
+                height: 50%;
+            }
+        }
+
+        /* ===== LOADING ANIMATION ===== */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        /* ===== FILE UPLOAD ZONE ===== */
+        .upload-zone {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 122, 204, 0.1);
+            border: 2px dashed var(--accent);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .upload-zone.active {
+            display: flex;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- HEADER / TOOLBAR -->
+    <header class="header">
+        <div class="logo">HTML Viewer</div>
+        
+        <select id="templateSelect" class="btn" title="Load Template">
+            <option value="">📋 Load Template</option>
+            <option value="blank">Blank Document</option>
+            <option value="styled">Styled Page</option>
+            <option value="interactive">Interactive JS</option>
+            <option value="dashboard">Dashboard Layout</option>
+        </select>
+
+        <button id="runBtn" class="btn btn-primary" title="Run Code (Ctrl+Enter)">
+            ▶ Run
+        </button>
+
+        <button id="resetBtn" class="btn btn-danger" title="Reset All">
+            ↻ Reset
+        </button>
+
+        <button id="downloadBtn" class="btn" title="Download HTML">
+            ⬇ Download
+        </button>
+
+        <button id="themeBtn" class="btn" title="Toggle Theme">
+            🌙 Theme
+        </button>
+
+        <button id="fullscreenBtn" class="btn" title="Fullscreen Preview">
+            ⛶ Fullscreen
+        </button>
+
+        <input type="file" id="fileInput" accept=".html,.htm" style="display: none;">
+        <button id="uploadBtn" class="btn" title="Upload HTML File">
+            📁 Upload
+        </button>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <div class="container">
+        <!-- EDITOR PANEL -->
+        <div class="editor-panel">
+            <div class="tabs">
+                <button class="tab active" data-lang="html">HTML</button>
+                <button class="tab" data-lang="css">CSS</button>
+                <button class="tab" data-lang="js">JavaScript</button>
+            </div>
+            <div class="editor-container">
+                <div class="editor active" data-lang="html">
+                    <textarea class="code-editor" id="htmlEditor" placeholder="Enter HTML code here..." spellcheck="false"></textarea>
+                </div>
+                <div class="editor" data-lang="css">
+                    <textarea class="code-editor" id="cssEditor" placeholder="Enter CSS code here..." spellcheck="false"></textarea>
+                </div>
+                <div class="editor" data-lang="js">
+                    <textarea class="code-editor" id="jsEditor" placeholder="Enter JavaScript code here..." spellcheck="false"></textarea>
+                </div>
+            </div>
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-text">Drop HTML file here</div>
+            </div>
+        </div>
+
+        <!-- RESIZER -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- PREVIEW PANEL -->
+        <div class="preview-panel">
+            <div class="preview-header">
+                <span class="preview-title">Live Preview</span>
+            </div>
+            <div class="preview-container">
+                <iframe id="previewFrame" class="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+                <div class="loading" id="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN OVERLAY -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+        <div class="fullscreen-header">
+            <span class="preview-title">Fullscreen Preview</span>
+            <button id="exitFullscreenBtn" class="btn">✕ Exit</button>
+        </div>
+        <div class="preview-container" style="flex: 1;">
+            <iframe id="fullscreenFrame" class="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===== TEMPLATES =====
+        const TEMPLATES = {
+            blank: {
+                html: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Document</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>',
+                css: '',
+                js: ''
+            },
+            styled: {
+                html: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Styled Page</title>\n</head>\n<body>\n    <div class="container">\n        <header>\n            <h1>Welcome to My Page</h1>\n            <nav>\n                <a href="#home">Home</a>\n                <a href="#about">About</a>\n                <a href="#contact">Contact</a>\n            </nav>\n        </header>\n        <main>\n            <section class="hero">\n                <h2>Beautiful Design</h2>\n                <p>This is a styled page template with modern CSS.</p>\n                <button class="cta-button">Get Started</button>\n            </section>\n        </main>\n        <footer>\n            <p>&copy; 2025 My Website</p>\n        </footer>\n    </div>\n</body>\n</html>',
+                css: '* {\n    margin: 0;\n    padding: 0;\n    box-sizing: border-box;\n}\n\nbody {\n    font-family: Arial, sans-serif;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    min-height: 100vh;\n    color: #333;\n}\n\n.container {\n    max-width: 1200px;\n    margin: 0 auto;\n    padding: 20px;\n}\n\nheader {\n    background: white;\n    padding: 20px;\n    border-radius: 10px;\n    margin-bottom: 30px;\n    box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n}\n\nh1 {\n    color: #667eea;\n    margin-bottom: 15px;\n}\n\nnav {\n    display: flex;\n    gap: 20px;\n}\n\nnav a {\n    color: #764ba2;\n    text-decoration: none;\n    font-weight: 600;\n    transition: color 0.3s;\n}\n\nnav a:hover {\n    color: #667eea;\n}\n\n.hero {\n    background: white;\n    padding: 60px 40px;\n    border-radius: 10px;\n    text-align: center;\n    box-shadow: 0 4px 6px rgba(0,0,0,0.1);\n}\n\n.hero h2 {\n    font-size: 2.5rem;\n    margin-bottom: 20px;\n    color: #333;\n}\n\n.hero p {\n    font-size: 1.2rem;\n    margin-bottom: 30px;\n    color: #666;\n}\n\n.cta-button {\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n    border: none;\n    padding: 15px 40px;\n    font-size: 1.1rem;\n    border-radius: 50px;\n    cursor: pointer;\n    transition: transform 0.3s;\n}\n\n.cta-button:hover {\n    transform: translateY(-2px);\n}\n\nfooter {\n    text-align: center;\n    color: white;\n    margin-top: 30px;\n    padding: 20px;\n}',
+                js: ''
+            },
+            interactive: {
+                html: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Interactive Demo</title>\n</head>\n<body>\n    <div class="app">\n        <h1>Interactive Counter</h1>\n        <div class="counter-display">\n            <span id="counter">0</span>\n        </div>\n        <div class="controls">\n            <button id="decreaseBtn">- Decrease</button>\n            <button id="resetBtn">Reset</button>\n            <button id="increaseBtn">+ Increase</button>\n        </div>\n        <div class="input-section">\n            <input type="text" id="nameInput" placeholder="Enter your name">\n            <button id="greetBtn">Greet Me!</button>\n            <p id="greeting"></p>\n        </div>\n    </div>\n</body>\n</html>',
+                css: 'body {\n    margin: 0;\n    padding: 20px;\n    font-family: Arial, sans-serif;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    min-height: 100vh;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n}\n\n.app {\n    background: white;\n    padding: 40px;\n    border-radius: 20px;\n    box-shadow: 0 10px 30px rgba(0,0,0,0.2);\n    text-align: center;\n    min-width: 400px;\n}\n\nh1 {\n    color: #667eea;\n    margin-bottom: 30px;\n}\n\n.counter-display {\n    background: #f0f0f0;\n    padding: 30px;\n    border-radius: 10px;\n    margin-bottom: 20px;\n}\n\n#counter {\n    font-size: 4rem;\n    font-weight: bold;\n    color: #764ba2;\n}\n\n.controls {\n    display: flex;\n    gap: 10px;\n    justify-content: center;\n    margin-bottom: 30px;\n}\n\nbutton {\n    background: #667eea;\n    color: white;\n    border: none;\n    padding: 12px 24px;\n    border-radius: 8px;\n    cursor: pointer;\n    font-size: 1rem;\n    transition: all 0.3s;\n}\n\nbutton:hover {\n    background: #764ba2;\n    transform: translateY(-2px);\n}\n\n.input-section {\n    margin-top: 30px;\n    padding-top: 30px;\n    border-top: 2px solid #f0f0f0;\n}\n\ninput {\n    padding: 12px;\n    border: 2px solid #667eea;\n    border-radius: 8px;\n    font-size: 1rem;\n    margin-right: 10px;\n    outline: none;\n}\n\n#greeting {\n    margin-top: 20px;\n    font-size: 1.2rem;\n    color: #764ba2;\n    font-weight: bold;\n}',
+                js: '// Counter functionality\nlet count = 0;\nconst counterDisplay = document.getElementById(\'counter\');\nconst decreaseBtn = document.getElementById(\'decreaseBtn\');\nconst resetBtn = document.getElementById(\'resetBtn\');\nconst increaseBtn = document.getElementById(\'increaseBtn\');\n\nfunction updateCounter() {\n    counterDisplay.textContent = count;\n    counterDisplay.style.transform = \'scale(1.2)\';\n    setTimeout(() => {\n        counterDisplay.style.transform = \'scale(1)\';\n    }, 200);\n}\n\ndecreaseBtn.addEventListener(\'click\', () => {\n    count--;\n    updateCounter();\n});\n\nresetBtn.addEventListener(\'click\', () => {\n    count = 0;\n    updateCounter();\n});\n\nincreaseBtn.addEventListener(\'click\', () => {\n    count++;\n    updateCounter();\n});\n\n// Greeting functionality\nconst nameInput = document.getElementById(\'nameInput\');\nconst greetBtn = document.getElementById(\'greetBtn\');\nconst greeting = document.getElementById(\'greeting\');\n\ngreetBtn.addEventListener(\'click\', () => {\n    const name = nameInput.value.trim();\n    if (name) {\n        greeting.textContent = `Hello, ${name}! Welcome to the interactive demo! 👋`;\n    } else {\n        greeting.textContent = \'Please enter your name first! 😊\';\n    }\n});\n\nnameInput.addEventListener(\'keypress\', (e) => {\n    if (e.key === \'Enter\') {\n        greetBtn.click();\n    }\n});'
+            },
+            dashboard: {
+                html: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Dashboard</title>\n</head>\n<body>\n    <div class="dashboard">\n        <aside class="sidebar">\n            <h2>Dashboard</h2>\n            <nav>\n                <a href="#" class="active">📊 Overview</a>\n                <a href="#">📈 Analytics</a>\n                <a href="#">👥 Users</a>\n                <a href="#">⚙️ Settings</a>\n            </nav>\n        </aside>\n        <main class="content">\n            <header class="top-bar">\n                <h1>Welcome Back!</h1>\n                <div class="user-info">\n                    <span>John Doe</span>\n                </div>\n            </header>\n            <div class="stats">\n                <div class="stat-card">\n                    <h3>Total Users</h3>\n                    <p class="stat-number">1,234</p>\n                    <span class="stat-change positive">+12%</span>\n                </div>\n                <div class="stat-card">\n                    <h3>Revenue</h3>\n                    <p class="stat-number">$45,678</p>\n                    <span class="stat-change positive">+8%</span>\n                </div>\n                <div class="stat-card">\n                    <h3>Active Sessions</h3>\n                    <p class="stat-number">567</p>\n                    <span class="stat-change negative">-3%</span>\n                </div>\n            </div>\n        </main>\n    </div>\n</body>\n</html>',
+                css: '* {\n    margin: 0;\n    padding: 0;\n    box-sizing: border-box;\n}\n\nbody {\n    font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;\n    background: #f5f5f5;\n}\n\n.dashboard {\n    display: flex;\n    height: 100vh;\n}\n\n.sidebar {\n    width: 250px;\n    background: #2c3e50;\n    color: white;\n    padding: 30px 20px;\n}\n\n.sidebar h2 {\n    margin-bottom: 30px;\n    font-size: 1.5rem;\n}\n\n.sidebar nav {\n    display: flex;\n    flex-direction: column;\n    gap: 10px;\n}\n\n.sidebar a {\n    color: #ecf0f1;\n    text-decoration: none;\n    padding: 12px 15px;\n    border-radius: 8px;\n    transition: all 0.3s;\n}\n\n.sidebar a:hover,\n.sidebar a.active {\n    background: #34495e;\n}\n\n.content {\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n}\n\n.top-bar {\n    background: white;\n    padding: 20px 40px;\n    box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n}\n\n.user-info {\n    background: #3498db;\n    color: white;\n    padding: 10px 20px;\n    border-radius: 20px;\n}\n\n.stats {\n    padding: 40px;\n    display: grid;\n    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n    gap: 20px;\n}\n\n.stat-card {\n    background: white;\n    padding: 30px;\n    border-radius: 12px;\n    box-shadow: 0 2px 8px rgba(0,0,0,0.1);\n}\n\n.stat-card h3 {\n    color: #7f8c8d;\n    font-size: 0.9rem;\n    margin-bottom: 15px;\n}\n\n.stat-number {\n    font-size: 2.5rem;\n    font-weight: bold;\n    color: #2c3e50;\n    margin-bottom: 10px;\n}\n\n.stat-change {\n    padding: 5px 10px;\n    border-radius: 5px;\n    font-size: 0.9rem;\n}\n\n.stat-change.positive {\n    background: #d4edda;\n    color: #155724;\n}\n\n.stat-change.negative {\n    background: #f8d7da;\n    color: #721c24;\n}',
+                js: '// Simulate real-time data updates\nfunction updateStats() {\n    const statNumbers = document.querySelectorAll(\'.stat-number\');\n    statNumbers.forEach(stat => {\n        const currentValue = parseInt(stat.textContent.replace(/[^0-9]/g, \'\'));\n        const change = Math.floor(Math.random() * 10) - 5;\n        const newValue = currentValue + change;\n        stat.style.transition = \'transform 0.3s\';\n        stat.style.transform = \'scale(1.1)\';\n        setTimeout(() => {\n            stat.textContent = stat.textContent.includes(\'$\') ? `$${newValue.toLocaleString()}` : newValue.toLocaleString();\n            stat.style.transform = \'scale(1)\';\n        }, 150);\n    });\n}\n\n// Update stats every 5 seconds\nsetInterval(updateStats, 5000);\n\n// Add click animation to sidebar links\nconst sidebarLinks = document.querySelectorAll(\'.sidebar a\');\nsidebarLinks.forEach(link => {\n    link.addEventListener(\'click\', (e) => {\n        e.preventDefault();\n        sidebarLinks.forEach(l => l.classList.remove(\'active\'));\n        link.classList.add(\'active\');\n    });\n});'
+            }
+        };
+
+        // ===== DOM ELEMENTS =====
+        const htmlEditor = document.getElementById('htmlEditor');
+        const cssEditor = document.getElementById('cssEditor');
+        const jsEditor = document.getElementById('jsEditor');
+        const previewFrame = document.getElementById('previewFrame');
+        const fullscreenFrame = document.getElementById('fullscreenFrame');
+        const tabs = document.querySelectorAll('.tab');
+        const editors = document.querySelectorAll('.editor');
+        const runBtn = document.getElementById('runBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const themeBtn = document.getElementById('themeBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const templateSelect = document.getElementById('templateSelect');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInput = document.getElementById('fileInput');
+        const uploadZone = document.getElementById('uploadZone');
+        const toast = document.getElementById('toast');
+        const resizer = document.getElementById('resizer');
+        const editorPanel = document.querySelector('.editor-panel');
+
+        // ===== STATE =====
+        let debounceTimer = null;
+        let currentTheme = 'dark';
+
+        // ===== TAB SWITCHING =====
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const lang = tab.dataset.lang;
+                
+                // Update tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update editors
+                editors.forEach(e => e.classList.remove('active'));
+                document.querySelector(`.editor[data-lang="${lang}"]`).classList.add('active');
+            });
+        });
+
+        // ===== LIVE PREVIEW WITH DEBOUNCE =====
+        function updatePreview() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const html = htmlEditor.value;
+                const css = cssEditor.value;
+                const js = jsEditor.value;
+                
+                const content = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>${css}</style>
+                    </head>
+                    <body>
+                        ${html}
+                        <script>${js}<\/script>
+                    </body>
+                    </html>
+                `;
+                
+                previewFrame.srcdoc = content;
+                if (fullscreenOverlay.classList.contains('active')) {
+                    fullscreenFrame.srcdoc = content;
+                }
+            }, 300);
+        }
+
+        // Listen to editor changes
+        htmlEditor.addEventListener('input', updatePreview);
+        cssEditor.addEventListener('input', updatePreview);
+        jsEditor.addEventListener('input', updatePreview);
+
+        // ===== RUN BUTTON =====
+        runBtn.addEventListener('click', () => {
+            clearTimeout(debounceTimer);
+            updatePreview();
+            showToast('Code executed!', 'success');
+        });
+
+        // Keyboard shortcut: Ctrl+Enter to run
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                runBtn.click();
+            }
+        });
+
+        // ===== RESET BUTTON =====
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all code?')) {
+                htmlEditor.value = '';
+                cssEditor.value = '';
+                jsEditor.value = '';
+                updatePreview();
+                showToast('Code reset!', 'success');
+            }
+        });
+
+        // ===== DOWNLOAD BUTTON =====
+        downloadBtn.addEventListener('click', () => {
+            const html = htmlEditor.value;
+            const css = cssEditor.value;
+            const js = jsEditor.value;
+            
+            const content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+${css}
+    </style>
+</head>
+<body>
+${html}
+    <script>
+${js}
+    <\/script>
+</body>
+</html>`;
+            
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast('File downloaded!', 'success');
+        });
+
+        // ===== THEME TOGGLE =====
+        themeBtn.addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.dataset.theme = currentTheme;
+            themeBtn.textContent = currentTheme === 'dark' ? '🌙 Theme' : '☀️ Theme';
+            showToast(`${currentTheme === 'dark' ? 'Dark' : 'Light'} theme activated`, 'success');
+        });
+
+        // ===== FULLSCREEN PREVIEW =====
+        fullscreenBtn.addEventListener('click', () => {
+            fullscreenOverlay.classList.add('active');
+            fullscreenFrame.srcdoc = previewFrame.srcdoc;
+        });
+
+        exitFullscreenBtn.addEventListener('click', () => {
+            fullscreenOverlay.classList.remove('active');
+        });
+
+        // ===== TEMPLATE LOADING =====
+        templateSelect.addEventListener('change', (e) => {
+            const template = e.target.value;
+            if (template && TEMPLATES[template]) {
+                htmlEditor.value = TEMPLATES[template].html;
+                cssEditor.value = TEMPLATES[template].css;
+                jsEditor.value = TEMPLATES[template].js;
+                updatePreview();
+                showToast(`Template "${template}" loaded!`, 'success');
+            }
+            e.target.value = '';
+        });
+
+        // ===== FILE UPLOAD =====
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadFile(file);
+            }
+        });
+
+        // Drag and drop
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('active');
+        });
+
+        document.addEventListener('dragleave', (e) => {
+            if (e.target === document) {
+                uploadZone.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('active');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+                loadFile(file);
+            } else {
+                showToast('Please drop a valid HTML file', 'error');
+            }
+        });
+
+        function loadFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                parseHTML(content);
+                showToast('File loaded successfully!', 'success');
+            };
+            reader.onerror = () => {
+                showToast('Error reading file', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        function parseHTML(content) {
+            // Extract HTML, CSS, and JS from the uploaded file
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
+            
+            // Extract CSS
+            const styles = Array.from(doc.querySelectorAll('style'))
+                .map(style => style.textContent)
+                .join('\n\n');
+            
+            // Extract JS
+            const scripts = Array.from(doc.querySelectorAll('script'))
+                .map(script => script.textContent)
+                .join('\n\n');
+            
+            // Remove style and script tags from body
+            doc.querySelectorAll('style, script').forEach(el => el.remove());
+            
+            // Get remaining HTML
+            const bodyContent = doc.body.innerHTML;
+            
+            htmlEditor.value = bodyContent.trim();
+            cssEditor.value = styles.trim();
+            jsEditor.value = scripts.trim();
+            
+            updatePreview();
+        }
+
+        // ===== TOAST NOTIFICATIONS =====
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ===== RESIZABLE PANELS =====
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            if (window.innerWidth > 768) {
+                // Desktop: horizontal resize
+                const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+                if (newWidth > 20 && newWidth < 80) {
+                    editorPanel.style.width = newWidth + '%';
+                }
+            } else {
+                // Mobile: vertical resize
+                const newHeight = ((e.clientY - containerRect.top) / containerRect.height) * 100;
+                if (newHeight > 20 && newHeight < 80) {
+                    editorPanel.style.height = newHeight + '%';
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('resizing');
+                document.body.style.cursor = '';
+            }
+        });
+
+        // ===== INITIALIZE WITH BLANK TEMPLATE =====
+        window.addEventListener('load', () => {
+            htmlEditor.value = TEMPLATES.blank.html;
+            updatePreview();
+        });
+
+        // ===== TAB KEY SUPPORT IN TEXTAREAS =====
+        document.querySelectorAll('.code-editor').forEach(editor => {
+            editor.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = editor.selectionStart;
+                    const end = editor.selectionEnd;
+                    
+                    // Insert 2 spaces
+                    editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+                    editor.selectionStart = editor.selectionEnd = start + 2;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
